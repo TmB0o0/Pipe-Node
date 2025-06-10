@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# Settings
+POP_DIR="/opt/popcache"
+ARCHIVE_NAME="update.tar.gz"
+
+# Check argument or prompt for URL
+if [ -z "$1" ]; then
+  read -p "Enter the URL to the archive (.tar.gz): " ARCHIVE_URL
+else
+  ARCHIVE_URL="$1"
+fi
+
+if [[ -z "$ARCHIVE_URL" ]]; then
+  echo "❌ URL not provided. Exiting."
+  exit 1
+fi
+
+# Navigate to pop-node directory
+cd "$POP_DIR" || { echo "❌ Directory $POP_DIR not found"; exit 1; }
+
+# Kill the running pop process (if any)
+echo "⛔ Stopping any running pop process..."
+pkill -f "$POP_DIR/pop"
+
+# Download and extract new binary
+echo "📥 Downloading archive..."
+wget "$ARCHIVE_URL" -O "$ARCHIVE_NAME" || { echo "❌ Failed to download archive"; exit 1; }
+
+echo "🧹 Removing old binary..."
+rm -f pop
+
+echo "📦 Extracting new binary..."
+tar -xvzf "$ARCHIVE_NAME" || { echo "❌ Failed to extract archive"; exit 1; }
+
+echo "🔐 Making binary executable..."
+chmod +x pop
+
+echo "🗑️ (Optional) Clearing old logs..."
+rm -f logs/*
+
+# Restart pop manually
+echo "🚀 Starting pop manually..."
+nohup ./pop > logs/output.log 2>&1 &
+
+echo "🎉 pop-node update complete and running in background (check logs/output.log)."
